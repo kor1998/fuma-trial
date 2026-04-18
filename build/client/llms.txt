@@ -1,0 +1,27 @@
+# Docs
+
+- [Voltus SDK Documentation](/docs): Build powerful integrations with the Voltus SDK.
+
+- **Getting Started**
+- [Installation](/docs/getting-started/installation): Install the Voltus SDK in your project using your preferred package manager.
+- [Quick Start](/docs/getting-started/quickstart): Make your first API call with the Voltus SDK in under 5 minutes.
+- [Project Structure](/docs/getting-started/project-structure): Recommended project structure for organizing your Voltus SDK integration.
+
+- **Core Concepts**
+- [Authentication](/docs/core-concepts/authentication): Learn how to authenticate with the Voltus API using API keys and OAuth tokens.
+- [Configuration](/docs/core-concepts/configuration): Customize the Voltus SDK behavior with comprehensive configuration options.
+- [Error Handling](/docs/core-concepts/error-handling): Gracefully handle errors and edge cases in your Voltus SDK integration.
+
+- **API Reference**
+- [Client Reference](/docs/api-reference/client): Complete API reference for the VoltusClient class and its methods.
+- [REST Endpoints](/docs/api-reference/endpoints): Complete list of REST API endpoints available through the Voltus SDK.
+- [Webhooks](/docs/api-reference/webhooks): Receive real-time notifications when events occur in your Voltus account.
+
+- **Guides**
+- [Data Fetching](/docs/guides/data-fetching): Patterns and best practices for fetching data efficiently with the Voltus SDK.
+- [Pagination](/docs/guides/pagination): Navigate through large datasets with offset-based and cursor-based pagination.
+- [Rate Limiting](/docs/guides/rate-limiting): Understand and work within the Voltus API rate limits.
+
+- **Resources**
+- [Changelog](/docs/changelog): What's new and improved in every release of the Voltus SDK.
+- [FAQ](/docs/faq): Frequently asked questions about the Voltus SDK.

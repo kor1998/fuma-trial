@@ -1,0 +1,807 @@
+# Client Reference (/docs/api-reference/client)
+
+
+
+The `VoltusClient` class is the central object in the SDK and the starting point for every operation. This reference covers its constructor, properties, and all available resource APIs.
+
+Introduction [#introduction]
+
+Every interaction with the Voltus platform flows through a single client instance. Understanding how to create and configure this instance is the foundation for everything else in the SDK.
+
+Creating a Client [#creating-a-client]
+
+Import `VoltusClient` from `@voltus/sdk` and instantiate it with your configuration. The only required parameter is `apiKey`. The client validates your configuration at creation time, so any issues — like a missing key or invalid environment name — surface immediately.
+
+Client Lifecycle [#client-lifecycle]
+
+The client manages an internal HTTP adapter with connection pooling and keep-alive. Create one instance and reuse it across your application. Multiple instances work but waste resources — each maintains its own connection pool, authentication state, and middleware chain.
+
+Constructor Options [#constructor-options]
+
+The constructor accepts a single configuration object with several optional fields that control the client's behavior.
+
+Required Options [#required-options]
+
+The `apiKey` field is the only required parameter. It accepts any valid Voltus API key — secret keys starting with `vlt_sk_`, public keys with `vlt_pk_`, or test keys with `vlt_test_`. The client validates the key format during initialization and throws an error if it's malformed.
+
+Optional Settings [#optional-settings]
+
+The `environment` field accepts `production` or `sandbox` and defaults to `production`. The `timeout` field sets the request timeout in milliseconds with a default of 30,000. The `retries` field controls the maximum retry attempts with a default of 3. The `baseUrl` field lets you point to a custom API endpoint for self-hosted deployments.
+
+Resource APIs [#resource-apis]
+
+The client exposes several resource-specific APIs as properties. Each follows the same consistent interface for CRUD operations.
+
+Resources and Entries [#resources-and-entries]
+
+`client.resources` provides methods for managing resources — `list()`, `get()`, `create()`, `update()`, and `delete()`. `client.entries` follows the same pattern with an additional `publish()` method. Both return fully typed response objects with consistent pagination for list operations.
+
+Users and Webhooks [#users-and-webhooks]
+
+`client.users` provides `me()` for the current user profile and `listApiKeys()` for key management. `client.webhooks` provides the full CRUD suite plus a `test()` method for sending test events to your endpoint. `client.analytics` gives access to usage metrics and request logs.
+
+Type Definitions [#type-definitions]
+
+The SDK exports all types so you can reference them in your own code for full type safety.
+
+Resource Types [#resource-types]
+
+The most commonly used types are `Resource`, `Entry`, `User`, and `Webhook`. Each includes an `id` string with a type-specific prefix, string fields for `name` and `description`, a `status` enum, and `Date` objects for `createdAt` and `updatedAt`. All date fields are returned as native JavaScript Date objects rather than ISO strings.
+
+Utility Types [#utility-types]
+
+`PaginatedResponse<T>` wraps list results with a `data` array and `pagination` metadata. `ClientOptions` defines the constructor configuration shape. All of these types are designed to be imported and used directly in your application's type signatures for end-to-end type safety.
+
+
+# REST Endpoints (/docs/api-reference/endpoints)
+
+
+
+While the SDK abstracts HTTP communication, understanding the underlying REST API can be helpful for debugging, custom integrations, or working in environments where the SDK isn't available.
+
+Introduction [#introduction]
+
+Every SDK method maps directly to a REST endpoint. The request and response formats are consistent across the entire API surface, making it easy to predict how any endpoint behaves once you understand the patterns.
+
+Base URL [#base-url]
+
+All API endpoints are served from `https://api.voltus.dev/v1` for production and `https://sandbox.api.voltus.dev/v1` for sandbox. The version prefix ensures backward compatibility — breaking changes ship under new version prefixes.
+
+Request Format [#request-format]
+
+Every request must include an `Authorization` header with your API key as a Bearer token, plus `Content-Type` and `Accept` headers set to `application/json`. The API strictly validates these headers and rejects requests with missing or incorrect values.
+
+Resource Endpoints [#resource-endpoints]
+
+Resource endpoints follow standard REST conventions with consistent URL patterns and HTTP methods.
+
+Read Operations [#read-operations]
+
+`GET /resources` returns a paginated list of all resources. `GET /resources/:id` returns a single resource by ID or a 404 error if it doesn't exist. Both endpoints support query parameters for filtering by status, tags, and date ranges. The SDK maps these to `client.resources.list()` and `client.resources.get()`.
+
+Write Operations [#write-operations]
+
+`POST /resources` creates a new resource and returns it with server-generated fields. `PATCH /resources/:id` updates specific fields on an existing resource using merge-patch semantics. `DELETE /resources/:id` permanently removes a resource and returns a 204 status with no body. The SDK maps these to `create()`, `update()`, and `delete()` methods.
+
+Response Format [#response-format]
+
+All API responses follow consistent structures that make parsing predictable across every endpoint.
+
+Success Responses [#success-responses]
+
+Single-resource responses wrap the data in a `data` field containing the full resource object. List responses include the `data` array plus a `pagination` object with `total`, `limit`, `offset`, and `hasMore` fields. Create and update operations return the full resource in the `data` field including server-generated values.
+
+Error Responses [#error-responses]
+
+Error responses include an `error` object with a machine-readable `code`, a human-readable `message`, and a unique `requestId` for support inquiries. Validation errors include an additional `fields` array listing each invalid field with its specific error message.
+
+Status Codes [#status-codes]
+
+The API uses standard HTTP status codes consistently across all endpoints.
+
+Success Codes [#success-codes]
+
+`200 OK` for successful reads and updates. `201 Created` for successful resource creation. `204 No Content` for successful deletions. These are the only three success codes the API returns.
+
+Error Codes [#error-codes]
+
+`400 Bad Request` for malformed requests. `401 Unauthorized` for invalid credentials. `403 Forbidden` for insufficient permissions. `404 Not Found` for missing resources. `422 Unprocessable Entity` for validation failures. `429 Too Many Requests` for rate limiting. `500 Internal Server Error` for server-side issues.
+
+
+# Webhooks (/docs/api-reference/webhooks)
+
+
+
+Webhooks let your application react to events in real time instead of constantly polling the API for changes. When something happens on the platform, Voltus sends an HTTP POST request to your specified URL with the full event details.
+
+Introduction [#introduction]
+
+The push-based webhook model is more efficient, more timely, and more scalable than polling. Instead of checking the API every few seconds for changes, your application simply waits for notifications to arrive.
+
+How Webhooks Work [#how-webhooks-work]
+
+You register a URL and a list of event types you're interested in. When a matching event occurs — like a resource being created or an entry being published — the platform sends a POST request to your URL with a JSON payload containing the event type, timestamp, and full resource data.
+
+When to Use Webhooks [#when-to-use-webhooks]
+
+Use webhooks whenever you need real-time awareness of changes. Common use cases include syncing data to external systems, triggering email notifications, updating search indexes, invalidating caches, and logging activity for audit trails. Webhooks eliminate the need for polling entirely.
+
+Setting Up [#setting-up]
+
+Creating and configuring webhooks is straightforward through both the SDK and the dashboard.
+
+Creating a Webhook [#creating-a-webhook]
+
+Call `client.webhooks.create()` with your endpoint URL, the list of event types to subscribe to, and a signing secret for payload verification. The signing secret is optional but strongly recommended for production — it prevents malicious actors from sending fake events to your endpoint.
+
+Available Events [#available-events]
+
+The platform emits events for all major state changes. Resource events include `resource.created`, `resource.updated`, and `resource.deleted`. Entry events include `entry.created`, `entry.updated`, `entry.published`, and `entry.unpublished`. Team events include `user.invited`. You can subscribe to as many or as few event types as you need.
+
+Processing Events [#processing-events]
+
+When your application receives a webhook, it needs to verify authenticity, parse the payload, and handle the event appropriately.
+
+Signature Verification [#signature-verification]
+
+Every webhook delivery includes an `x-voltus-signature` header containing an HMAC signature of the request body. The SDK provides a `verifyWebhookSignature()` helper that validates this signature against your signing secret. Always verify before processing — skipping this step opens your application to spoofed events.
+
+Event Routing [#event-routing]
+
+After verification, parse the JSON payload and route it based on the `type` field. A clean approach is a switch statement or handler map that calls the appropriate function for each event type. Keep your handler fast — return a 200 status quickly and process heavy work asynchronously.
+
+Reliability [#reliability]
+
+The platform includes built-in retry logic and monitoring to ensure webhook deliveries are reliable.
+
+Retry Policy [#retry-policy]
+
+If your endpoint is unavailable or returns an error, the platform retries with increasing delays — one minute, five minutes, thirty minutes, two hours, and finally twenty-four hours. After five failed attempts, the webhook is marked as failing and you receive an email notification.
+
+Monitoring and Testing [#monitoring-and-testing]
+
+Check delivery logs in the dashboard or use `client.webhooks.test()` to trigger a test event and verify connectivity. Common failure causes include expired SSL certificates, firewall rules blocking Voltus IPs, or unhandled exceptions in your handler code. Regular monitoring ensures you catch delivery issues before they impact your integration.
+
+
+# Changelog (/docs/changelog)
+
+
+
+We ship updates to the SDK regularly, with a focus on developer experience, performance, and reliability. Below is a summary of the most recent releases.
+
+Latest Release [#latest-release]
+
+The most recent version includes significant new features and performance improvements that benefit all users.
+
+Version 1.4 — April 2026 [#version-14--april-2026]
+
+This release introduces the Analytics API for programmatic access to usage metrics, cursor-based pagination on the entries endpoint for real-time feeds, and the new middleware system via `client.use()` for custom logging and monitoring. Bundle size was reduced by 18 percent through improved tree-shaking, and TypeScript type inference for filter queries is now significantly more accurate.
+
+Version 1.3 — March 2026 [#version-13--march-2026]
+
+OAuth 2.0 support landed with full authorization code flow, automatic token refresh, and token revocation. The `webhooks.test()` method was added for debugging webhook endpoints during development. Two bugs were fixed — retry logic now respects the `Retry-After` header correctly, and a race condition in concurrent paginated requests was resolved.
+
+Previous Releases [#previous-releases]
+
+Earlier versions established the core SDK functionality and infrastructure.
+
+Version 1.2 — February 2026 [#version-12--february-2026]
+
+This release brought webhook signature verification, structured validation errors via `ValidationError.fields`, and the new metadata field on resources. The `node-fetch` dependency was removed in favor of native Fetch, making the SDK truly zero-dependency for the first time.
+
+Version 1.1 — January 2026 [#version-11--january-2026]
+
+Batch operations, custom logger support, and proxy configuration were added. Fixed timeout not being applied to retry requests and URL encoding issues for resource names with special characters.
+
+Initial Release [#initial-release]
+
+The foundation that started it all.
+
+Version 1.0 — December 2025 [#version-10--december-2025]
+
+The first stable release of the Voltus SDK. Included full CRUD operations for Resources and Entries, API key authentication, automatic retries with exponential backoff, rate limit handling, and comprehensive TypeScript type definitions. This release established the patterns and conventions that all subsequent versions build upon.
+
+
+# Authentication (/docs/core-concepts/authentication)
+
+
+
+Authentication is the foundation of every interaction with the Voltus platform. Before your application can read or write any data, it needs to prove its identity. The SDK makes this seamless — you pass your credentials once during client initialization, and every subsequent request is automatically authenticated.
+
+Introduction [#introduction]
+
+The Voltus API supports two authentication methods — API keys for server-side applications and OAuth 2.0 for user-facing integrations. Both methods are fully supported by the SDK, and you can switch between them without changing any of your data-fetching code.
+
+Choosing a Method [#choosing-a-method]
+
+If your application runs on a server and acts with its own identity, use an API key. If your application acts on behalf of individual users who need to grant permission, use OAuth 2.0. Most integrations start with API keys because they're simpler to set up, and migrate to OAuth later if user-level authentication becomes necessary.
+
+Security Principles [#security-principles]
+
+Regardless of which method you use, never expose credentials in client-side code, version control, or logs. Treat your API key like a password — store it in environment variables, rotate it periodically, and revoke it immediately if it's ever compromised.
+
+API Keys [#api-keys]
+
+API keys are the simplest and most common way to authenticate with the Voltus API. You generate a key in the dashboard, pass it to the SDK, and you're ready to make requests.
+
+Key Types [#key-types]
+
+Voltus issues three types of API keys. Secret keys start with `vlt_sk_` and grant full read-write access — use these only on the server. Public keys start with `vlt_pk_` and are restricted to read-only operations — these are safe for client-side code. Test keys start with `vlt_test_` and only work against the sandbox environment — use these during development.
+
+Using Keys in the SDK [#using-keys-in-the-sdk]
+
+Pass your API key to the `VoltusClient` constructor and the SDK handles everything else. It attaches the key as a Bearer token in the Authorization header of every request, validates the key format at initialization time, and throws a clear error if the key is malformed or missing.
+
+OAuth 2.0 [#oauth-20]
+
+For applications that act on behalf of users, the SDK supports the full OAuth 2.0 authorization code flow with automatic token management.
+
+The Authorization Flow [#the-authorization-flow]
+
+First, generate an authorization URL using `client.auth.getAuthorizationUrl()` with the scopes your application needs. Redirect the user to this URL — they'll see a consent screen showing what permissions your app is requesting. After they approve, Voltus redirects back to your callback URL with an authorization code that you exchange for access tokens.
+
+Token Lifecycle [#token-lifecycle]
+
+Once authenticated, the SDK manages token expiration and refresh automatically. When an access token is about to expire, the SDK uses the refresh token to obtain a new one before your next API call. You can subscribe to token refresh events with `client.auth.onTokenRefresh()` if you need to persist new tokens to your database.
+
+Scopes [#scopes]
+
+Every credential is associated with a set of scopes that define what it can access. Understanding scopes helps you follow the principle of least privilege.
+
+Available Scopes [#available-scopes]
+
+Scopes follow a `resource:action` pattern — `resources:read` lets you list and get resources, `resources:write` lets you create, update, and delete them. Other scopes include `webhooks:manage`, `users:read`, and `analytics:read`. Always request the minimum set your application actually needs.
+
+Handling Permission Errors [#handling-permission-errors]
+
+If your application attempts an operation outside its granted scopes, the SDK throws an `AuthorizationError` with a message explaining which scope is missing. This makes debugging straightforward — you'll know exactly what to add to your API key or OAuth request to resolve the issue.
+
+
+# Configuration (/docs/core-concepts/configuration)
+
+
+
+The Voltus SDK is designed to work out of the box with sensible defaults, but nearly every aspect of its behavior can be customized. From timeouts and retry policies to custom logging and request middleware, the configuration system gives you full control without adding complexity when you don't need it.
+
+Introduction [#introduction]
+
+Most applications will only ever set two or three configuration options — the API key and maybe the environment. But the full range of options is there for when you need precise control over the SDK's behavior in production.
+
+Design Philosophy [#design-philosophy]
+
+We follow the principle of "sensible defaults, full overrides." Every configuration option has a default that works well for the majority of use cases. You only need to specify options when you want behavior that differs from the default. This keeps simple integrations simple while giving power users the flexibility they need.
+
+When to Customize [#when-to-customize]
+
+If the SDK works well for you with just an API key, don't change anything else. Start customizing when you encounter specific needs — like setting longer timeouts for slow networks, reducing retries for time-sensitive operations, or adding middleware for observability.
+
+Client Options [#client-options]
+
+The `VoltusClient` constructor accepts a configuration object that controls every aspect of the SDK's behavior. Here's what you can configure and why you might want to.
+
+Connection Settings [#connection-settings]
+
+The `timeout` option controls how long the SDK waits for a response before giving up. The default is 30 seconds, which works for most operations. If you're exporting large datasets, you might increase this. If you need fast failure for user-facing requests, you might decrease it. The `connectTimeout` option separately controls how long the SDK waits to establish a connection.
+
+Retry Policy [#retry-policy]
+
+By default, failed requests are retried up to three times with exponential backoff — one second, then two seconds, then four seconds. You can adjust the `retries` count, the `retryDelay` base interval, and the `retryBackoff` strategy. Setting `retries` to zero disables automatic retries entirely, which can be useful for idempotency-sensitive operations.
+
+Middleware [#middleware]
+
+The SDK's middleware system lets you hook into the request lifecycle for logging, monitoring, and custom header injection.
+
+Request Interceptors [#request-interceptors]
+
+Register middleware using `client.use()` with an object containing `onRequest`, `onResponse`, and `onError` handlers. The `onRequest` handler receives the full request configuration and can modify headers, log the outgoing request, or inject tracing identifiers before the request is sent.
+
+Response Interceptors [#response-interceptors]
+
+The `onResponse` handler receives the parsed response including status code, headers, and duration. This is the ideal place to log response times, record metrics, or trigger alerts when latency exceeds a threshold. Middleware runs in the order it's registered, so you can layer multiple concerns without them interfering with each other.
+
+Environment Configuration [#environment-configuration]
+
+Production applications need different settings for different deployment stages. The SDK makes it easy to derive configuration from environment variables.
+
+Development vs Production [#development-vs-production]
+
+Your development environment might use the sandbox API with verbose debug logging, while production uses the live API with minimal logging and tighter timeouts. The SDK's `environment` option switches between API endpoints, and you can combine this with a `logLevel` setting to control verbosity.
+
+Configuration Factory [#configuration-factory]
+
+We recommend creating a factory function that reads environment variables and returns a validated configuration object. This function becomes the single place where all environment-specific logic lives, and it can validate that required variables are present before your application starts accepting traffic.
+
+
+# Error Handling (/docs/core-concepts/error-handling)
+
+
+
+Every API call has the potential to fail. The Voltus SDK is designed to make error handling as predictable and informative as possible, with structured error types that tell you exactly what went wrong and whether it's safe to retry.
+
+Introduction [#introduction]
+
+Instead of throwing generic JavaScript errors with vague messages, the SDK provides a hierarchy of typed error classes. Each class corresponds to a specific category of failure and carries rich metadata for debugging.
+
+Error Philosophy [#error-philosophy]
+
+We believe errors should be actionable. Every error thrown by the SDK includes a machine-readable code for programmatic handling, a human-readable message for logging, a request ID for support inquiries, and a `retryable` flag that tells you whether retrying is worthwhile.
+
+When Errors Occur [#when-errors-occur]
+
+Errors can happen for many reasons — invalid credentials, missing resources, malformed input, rate limiting, network issues, or server-side problems. The SDK categorizes each scenario into a specific error type so you can handle them precisely rather than catching everything with a generic handler.
+
+Error Types [#error-types]
+
+The SDK defines a hierarchy of error classes, all extending from a base `VoltusError` class. This lets you catch all SDK errors broadly or target specific failure types.
+
+Client Errors [#client-errors]
+
+`AuthenticationError` fires when your API key is invalid or expired. `AuthorizationError` fires when your key lacks the required scope for the operation. `NotFoundError` fires when you reference a resource that doesn't exist. `ValidationError` fires when your input data fails server-side validation and includes a `fields` array describing each invalid field.
+
+Server Errors [#server-errors]
+
+`RateLimitError` fires when you've exceeded your API quota and includes a `retryAfter` property indicating how long to wait. `ServerError` fires for unexpected server-side failures and is always safe to retry. The SDK's built-in retry mechanism handles both of these automatically, but you can also catch them explicitly for custom handling.
+
+Recovery Patterns [#recovery-patterns]
+
+The most robust applications don't just catch errors — they recover from them gracefully using established patterns.
+
+Fallback Strategy [#fallback-strategy]
+
+For non-critical operations, implement a fallback that returns cached data or a default value when an API call fails. This keeps your application functional even during temporary outages. The pattern is simple — wrap your API call in a try-catch and return the fallback value in the catch block.
+
+Dead Letter Queue [#dead-letter-queue]
+
+For operations that must eventually succeed, log failed requests with full context and move on to the next item. A separate process can retry failed operations with longer delays, or flag them for manual review. This ensures one bad record doesn't block the processing of everything behind it.
+
+Global Error Handling [#global-error-handling]
+
+For cross-cutting concerns like monitoring and alerting, the SDK supports a global error handler that fires on every failure.
+
+Setting Up Monitoring [#setting-up-monitoring]
+
+Call `client.onError()` with a callback function that receives the full error object. This is the ideal place to send errors to services like Sentry or Datadog — the handler receives all metadata including the request ID, error code, and endpoint, so you can automatically enrich your error reports.
+
+Building Dashboards [#building-dashboards]
+
+With structured error types flowing into your monitoring system, you can build dashboards that break down failures by type. This shows you at a glance whether you're experiencing authentication issues, hitting rate limits, or dealing with server-side problems — giving you the observability needed to maintain a healthy production integration.
+
+
+# FAQ (/docs/faq)
+
+
+
+This page answers the questions we hear most often from developers. If your question isn't covered here, open an issue on GitHub or reach out through our community Discord.
+
+General [#general]
+
+Common questions about the SDK's capabilities, supported platforms, and licensing.
+
+Platform Support [#platform-support]
+
+The SDK supports Node.js 18 and above, Bun, Deno, and modern edge runtimes like Cloudflare Workers and Vercel Edge Functions. It uses the standard Fetch API under the hood, so it works anywhere modern JavaScript runs without platform-specific adapters or polyfills.
+
+Getting an API Key [#getting-an-api-key]
+
+Sign in to the Voltus dashboard and navigate to Settings, then API Keys. You can create multiple keys with different scopes and labels. Public keys prefixed with `vlt_pk_` are safe for client-side use but restricted to read-only operations. Secret keys prefixed with `vlt_sk_` have full access and should only be used server-side.
+
+Troubleshooting [#troubleshooting]
+
+Solutions to the most commonly reported issues.
+
+Connection Errors [#connection-errors]
+
+If you're seeing `ECONNREFUSED` errors, check that your network allows outbound HTTPS connections to `api.voltus.dev` on port 443. Corporate firewalls and VPNs sometimes block unfamiliar domains. Also check the Voltus status page for active incidents affecting API availability.
+
+Timeout Issues [#timeout-issues]
+
+Increase the client's timeout setting if requests are timing out. The default is 30 seconds, but large data exports may need more. If you're hitting rate limits frequently, review the Rate Limiting guide for strategies to reduce API call volume through batch queries, caching, and webhooks.
+
+Migration [#migration]
+
+Information about upgrading between versions and backward compatibility.
+
+Breaking Changes [#breaking-changes]
+
+When we release a new major version, we publish a detailed migration guide with before-and-after code examples. Previous major versions receive security patches for at least 12 months after their successor is released, giving you time to upgrade at your own pace.
+
+Backward Compatibility [#backward-compatibility]
+
+Minor and patch releases are always backward compatible — you can update to them without changing any existing code. We follow semantic versioning strictly, so the version number always tells you whether an update is safe to apply without review.
+
+
+# Installation (/docs/getting-started/installation)
+
+
+
+Getting the Voltus SDK into your project takes less than a minute. The package is published to npm and works with all major JavaScript package managers. Before you begin, make sure you have Node.js version 18 or higher installed on your machine.
+
+Prerequisites [#prerequisites]
+
+Before installing the SDK, you'll need a few things in place. These are standard requirements for any modern JavaScript project, and chances are you already have most of them ready to go.
+
+System Requirements [#system-requirements]
+
+You need Node.js version 18.0 or higher installed on your machine. The SDK relies on built-in features like the native Fetch API that were introduced in Node 18. If you're unsure which version you have, run `node --version` in your terminal to check. We also support Bun and Deno as alternative runtimes if you prefer those over Node.
+
+Getting an API Key [#getting-an-api-key]
+
+Sign in to the Voltus dashboard and navigate to Settings, then API Keys. Click the create button to generate a new key. You'll receive a string starting with `vlt_sk_` for production use or `vlt_test_` for sandbox environments. Copy this key and keep it somewhere safe — you'll need it in the next step.
+
+Automatic Installation [#automatic-installation]
+
+The simplest way to get started is through your package manager. The SDK is published as `@voltus/sdk` on the npm registry and works with npm, yarn, pnpm, and bun out of the box.
+
+Using npm or yarn [#using-npm-or-yarn]
+
+Run `npm install @voltus/sdk` or `yarn add @voltus/sdk` in your project directory. The package will be added to your `dependencies` in `package.json` and downloaded to `node_modules`. The SDK has zero external runtime dependencies, so you won't see any additional packages being pulled in.
+
+Using pnpm or bun [#using-pnpm-or-bun]
+
+If you prefer pnpm or bun, the commands are `pnpm add @voltus/sdk` and `bun add @voltus/sdk` respectively. Both package managers handle the installation identically — the SDK doesn't require any special configuration or peer dependencies regardless of which package manager you use.
+
+Environment Setup [#environment-setup]
+
+We strongly recommend storing your API key in environment variables rather than hardcoding it in your source code. This keeps your credentials safe and makes it easy to use different keys for different environments.
+
+Creating a .env File [#creating-a-env-file]
+
+Create a file called `.env` in the root of your project and add your API key as `VOLTUS_API_KEY=vlt_sk_your_secret_key_here`. Most frameworks like Next.js, Remix, and Express automatically load `.env` files at startup, so your key will be available as `process.env.VOLTUS_API_KEY` throughout your application.
+
+Security Best Practices [#security-best-practices]
+
+Never commit your `.env` file to version control. Add it to your `.gitignore` immediately after creating it. For team environments, create a `.env.example` file that lists all the required variables without their actual values — this serves as documentation for other developers who clone the project and need to set up their own credentials.
+
+Verify Installation [#verify-installation]
+
+After installing the package and setting up your environment, run a quick test to make sure everything is working correctly before moving on.
+
+Quick Test [#quick-test]
+
+Create a simple test file that imports the `VoltusClient` class and instantiates it with your API key. If the import resolves and the client initializes without errors, your installation is complete. You can also log `client.version` to confirm the exact SDK version that was installed.
+
+Troubleshooting [#troubleshooting]
+
+If the import fails, make sure the package name is spelled correctly — it's `@voltus/sdk` with the `@voltus` scope prefix. If you get a runtime error about missing APIs, check that your Node.js version is 18 or higher. And if the client throws an authentication error, double-check that your API key is correct and hasn't been revoked in the dashboard.
+
+
+# Project Structure (/docs/getting-started/project-structure)
+
+
+
+As your integration grows beyond a single file, having a clear and consistent project structure becomes essential. The patterns described here represent what we've seen work well across hundreds of production integrations.
+
+Introduction [#introduction]
+
+There's no single "correct" way to organize your code when using the Voltus SDK. The patterns here are recommendations based on real-world experience, not requirements. That said, following a consistent structure will make your codebase easier to navigate, test, and maintain — especially as your team grows and more people touch the integration code.
+
+When Structure Matters [#when-structure-matters]
+
+For a quick prototype or script, you can put everything in a single file and it'll work perfectly fine. But once your integration touches multiple resources, handles webhooks, manages caching, or runs in production with monitoring, having separate modules for each concern prevents your code from becoming tangled and hard to reason about.
+
+The Recommended Layout [#the-recommended-layout]
+
+We suggest creating a dedicated directory for your Voltus integration — something like `src/voltus/` or `lib/voltus/`. Inside this directory, you'll have separate files for the client instance, each resource type's service layer, webhook handlers, and custom type definitions. This keeps all integration-related code in one place while maintaining clean separation between concerns.
+
+Client Module [#client-module]
+
+The most important architectural decision is where your client instance lives. A centralized client module ensures every part of your application uses the same configuration and connection pool.
+
+Single Source of Truth [#single-source-of-truth]
+
+Create a file called `client.ts` that initializes the `VoltusClient` with your configuration and exports it. Every other module that needs to interact with the Voltus API imports the client from this one file. This means changes to your configuration — like updating the timeout or adding middleware — only need to happen in one place.
+
+Avoiding Common Mistakes [#avoiding-common-mistakes]
+
+The most common mistake we see is creating new client instances inline wherever they're needed. While this technically works, you end up with duplicated configuration scattered across your codebase, multiple connection pools competing for resources, and no central place to add cross-cutting concerns like logging or error handling. A single shared client instance solves all of these problems.
+
+Service Layer [#service-layer]
+
+Wrapping your SDK calls in service functions creates a clean separation between your API integration and the rest of your application logic.
+
+Why Use Services [#why-use-services]
+
+Instead of calling `client.resources.list()` directly in your route handlers or React components, create functions like `getAllResources()` or `findResourceByName()` that encapsulate the business logic. Your route handler calls the service function, which handles pagination, caching, error recovery, and data transformation internally. The handler just gets back the data it needs.
+
+Organizing Services [#organizing-services]
+
+Create one service file per resource type — `resources.ts`, `entries.ts`, `webhooks.ts`. Each file imports the shared client and exports functions that your application code can call. This makes it easy to find the code responsible for any given operation, and it lets you add resource-specific logic like validation or caching without cluttering other parts of the codebase.
+
+Configuration [#configuration]
+
+Keep your environment-specific settings organized and validated in a single configuration module.
+
+Environment Variables [#environment-variables]
+
+Store API keys, base URLs, and feature flags in environment variables and load them through a dedicated config file. This file should validate that all required variables are present at startup, so you get a clear error message immediately rather than a confusing failure deep in your application when a missing key causes an API call to fail.
+
+Multi-Environment Setup [#multi-environment-setup]
+
+For teams working across development, staging, and production environments, create separate `.env` files for each stage. Most frameworks support this natively with files like `.env.local` and `.env.production`. The SDK's `environment` option makes it easy to switch between the production and sandbox APIs based on your deployment target.
+
+
+# Quick Start (/docs/getting-started/quickstart)
+
+
+
+This guide will take you from zero to your first successful API call in just a few minutes. By the end, you'll have a working client, fetched live data from the Voltus platform, and created your first resource. No prior experience with the SDK is required.
+
+Introduction [#introduction]
+
+The Voltus SDK is designed to feel natural to JavaScript and TypeScript developers. If you've ever used a library like Stripe's SDK or the AWS SDK, the patterns will be immediately familiar. You create a client, call methods on it, and get back typed responses. Every method is async, every error is structured, and every response follows a consistent shape.
+
+How It Works [#how-it-works]
+
+Under the hood, the SDK wraps the Voltus REST API in a clean, type-safe interface. When you call `client.resources.list()`, the SDK constructs an HTTP request, sends it to the API, parses the response, and returns a fully typed JavaScript object. It also handles authentication headers, retry logic, rate limiting, and error parsing automatically.
+
+What You'll Build [#what-youll-build]
+
+By the end of this tutorial, you'll have a working script that connects to the Voltus API, retrieves a list of resources, creates a new resource, updates it, and then cleans up by deleting it. These four operations — list, create, update, delete — form the foundation of every integration.
+
+Step 1 — Initialize the Client [#step-1--initialize-the-client]
+
+The first thing every application needs is a configured client instance. This is the single object through which all your API interactions will flow.
+
+Create the Client Module [#create-the-client-module]
+
+Create a new file called `client.ts` in your project. Import the `VoltusClient` class from the SDK and create a new instance, passing your API key from the environment variable. Export this instance so other files can import and use it without creating their own clients.
+
+Configuration Options [#configuration-options]
+
+The client accepts several optional settings beyond the API key. You can set the `environment` to `sandbox` for testing, adjust the `timeout` for slow networks, or change the `retries` count for flaky connections. For now, the defaults are perfectly fine — you can always adjust them later as your needs evolve.
+
+Step 2 — Fetch Resources [#step-2--fetch-resources]
+
+With the client ready, you can start reading data from the platform. List operations are the most common starting point for any integration.
+
+Making the Request [#making-the-request]
+
+Call `client.resources.list()` to fetch the first page of resources. The response object contains two properties — `data`, which is an array of resource objects, and `pagination`, which tells you the total count, current page size, and whether more pages are available. Each resource in the array has an `id`, `name`, `description`, `status`, `tags`, and timestamp fields.
+
+Understanding the Response [#understanding-the-response]
+
+The pagination object follows a consistent pattern across every list endpoint in the SDK. The `total` field tells you how many records exist in total, `limit` is how many were returned in this page, `offset` is where this page started, and `hasMore` indicates whether there are additional pages to fetch. This consistent structure means you only need to learn the pattern once.
+
+Step 3 — Create a Resource [#step-3--create-a-resource]
+
+Reading data is useful, but most integrations also need to write data back to the platform. Creating a resource demonstrates the SDK's mutation capabilities.
+
+Building the Payload [#building-the-payload]
+
+Call `client.resources.create()` with an object containing the fields for your new resource. The only required field is `name` — everything else is optional. You can include a `description`, an array of `tags` for organization, and a `metadata` object for storing arbitrary key-value pairs that are specific to your application.
+
+Handling the Response [#handling-the-response]
+
+The create method returns the newly created resource with all of its server-generated fields populated — including the unique `id`, the `status` which defaults to `draft`, and the `createdAt` and `updatedAt` timestamps. You can use the returned `id` immediately for subsequent operations like updates or deletions.
+
+Step 4 — Update and Delete [#step-4--update-and-delete]
+
+The final operations complete the CRUD lifecycle. Updating lets you modify existing resources, and deleting removes them permanently.
+
+Updating Fields [#updating-fields]
+
+Call `client.resources.update()` with the resource ID and an object containing only the fields you want to change. You don't need to send the entire resource — the SDK uses PATCH semantics, so only the specified fields are modified and everything else remains unchanged. The method returns the full updated resource so you can verify the changes.
+
+Deleting a Resource [#deleting-a-resource]
+
+Call `client.resources.delete()` with just the resource ID. The method returns void on success and throws a `NotFoundError` if the resource doesn't exist. Deletion is permanent and cannot be undone, so make sure you're targeting the correct resource before calling this method in production code.
+
+Next Steps [#next-steps]
+
+Now that you've completed the basic CRUD operations, you have a solid foundation for building any integration with the Voltus platform.
+
+Recommended Reading [#recommended-reading]
+
+Head to the Authentication guide to learn about API key scopes, OAuth flows, and token management. Then check out the Error Handling page to understand how to gracefully handle failures in production. Finally, the Guides section covers real-world patterns like pagination, caching, and rate limit management that will help you scale your integration.
+
+Join the Community [#join-the-community]
+
+If you have questions or want to share what you're building, join our community Discord where other developers discuss patterns, share code snippets, and help each other troubleshoot issues. We also love to see what people build with the SDK, so feel free to tag us on Twitter with your projects.
+
+
+# Data Fetching (/docs/guides/data-fetching)
+
+
+
+Fetching data efficiently is one of the most important aspects of building a reliable integration. This guide covers the patterns that work best across production applications of all sizes.
+
+Introduction [#introduction]
+
+The SDK provides a straightforward API for reading data, but how you structure your fetching logic has a significant impact on performance, reliability, and user experience.
+
+The Basics [#the-basics]
+
+Every list method returns a paginated response with a `data` array and a `pagination` object. Every get method returns a single resource or throws a `NotFoundError`. These consistent patterns mean you only need to learn the approach once and it applies everywhere.
+
+Thinking About Performance [#thinking-about-performance]
+
+The two biggest factors in fetch performance are the number of requests you make and the amount of data each request returns. Minimizing both through filtering, parallel fetching, and caching is the key to building fast integrations.
+
+Filtered Queries [#filtered-queries]
+
+Narrowing your queries to only the data you need reduces transfer size and processing time.
+
+Field Filtering [#field-filtering]
+
+Every list method accepts a `filter` object that lets you narrow results by field values, date ranges, tags, and status. Filters are applied server-side, so you only transfer the data you actually need rather than fetching everything and filtering locally.
+
+Sorting and Ordering [#sorting-and-ordering]
+
+Pass a `sort` field name and an `order` direction to control the order of results. You can combine filtering and sorting in a single request, which is useful for building search interfaces, activity feeds, or dashboards that show the most recently updated resources.
+
+Parallel Fetching [#parallel-fetching]
+
+When you need data from multiple independent sources, fetch them simultaneously rather than sequentially.
+
+Using Promise.all [#using-promiseall]
+
+Wrap your independent API calls in `Promise.all()` to execute them concurrently. Three requests that each take 200 milliseconds will complete in 200 milliseconds total rather than 600 milliseconds when run in parallel. The SDK's connection pooling ensures parallel requests are handled efficiently.
+
+Batch Queries [#batch-queries]
+
+When you need multiple records by ID, use a list filter with an `in` operator rather than making individual get calls. This reduces the number of API calls from N to 1 and is especially important when working under rate limits where every saved request counts.
+
+Caching [#caching]
+
+Not every piece of data needs to be fetched fresh on every request. Implementing a cache layer can dramatically reduce API calls and improve responsiveness.
+
+In-Memory Cache [#in-memory-cache]
+
+A basic in-memory cache with a time-to-live expiration is often sufficient for single-instance applications. Store the response data with an expiration timestamp, and return the cached version for subsequent requests until the TTL expires. The SDK's consistent response format makes it easy to cache any endpoint's results.
+
+External Cache [#external-cache]
+
+For multi-instance deployments, use Redis or a similar external cache that persists across restarts and can be shared between application instances. Choose TTLs based on how frequently each type of data changes — user profiles might be cached for five minutes while resource lists might only last thirty seconds.
+
+
+# Pagination (/docs/guides/pagination)
+
+
+
+Any non-trivial application will eventually need to work with datasets too large to return in a single API response. The SDK provides both low-level controls for manual pagination and high-level patterns for common use cases.
+
+Introduction [#introduction]
+
+The Voltus API uses pagination to break large result sets into manageable pages. Understanding the available pagination methods helps you choose the right approach for each use case.
+
+Why Pagination Matters [#why-pagination-matters]
+
+Without pagination, a single API call could return millions of records, consuming excessive bandwidth, memory, and processing time on both the client and server. Pagination keeps individual requests fast and predictable, regardless of how much data exists in your account.
+
+Choosing a Method [#choosing-a-method]
+
+The API supports two pagination methods — offset-based and cursor-based. Offset pagination is simpler and supports random page access. Cursor pagination is more reliable for frequently changing data. Most applications use offset pagination by default and switch to cursors for specific real-time use cases.
+
+Offset Pagination [#offset-pagination]
+
+The default pagination method uses `limit` and `offset` parameters to control which slice of data you receive.
+
+How It Works [#how-it-works]
+
+Set `limit` to the number of records per page and `offset` to the starting position. The response includes a `pagination` object with `total`, `limit`, `offset`, and `hasMore` fields. To get the next page, increment offset by the limit value and make another request.
+
+Considerations [#considerations]
+
+The main thing to keep in mind is that underlying data can change between page requests. If a new record is inserted while you're iterating, you might see duplicates. For most applications this is acceptable, but if you need guaranteed consistency, cursor-based pagination is a better choice.
+
+Cursor Pagination [#cursor-pagination]
+
+For real-time or frequently changing data, cursor-based pagination provides consistency guarantees that offset pagination cannot.
+
+How It Works [#how-it-works-1]
+
+Make your first request without a cursor. Each response includes a `nextCursor` string that encodes your exact position in the result set. Pass this cursor to the next request to continue where you left off. When `nextCursor` is null, you've reached the end.
+
+When to Use Cursors [#when-to-use-cursors]
+
+Cursor pagination is ideal for processing event feeds, syncing data between systems, and building infinite-scroll interfaces. The trade-off is that you can only move forward through results — random page access and jumping to a specific page number aren't supported.
+
+Fetching All Records [#fetching-all-records]
+
+Sometimes you need every record in a collection regardless of how many pages it spans.
+
+The Loop Pattern [#the-loop-pattern]
+
+Create a loop that fetches one page at a time, appends results to an array, and increments the offset until `hasMore` is false. This is straightforward but loads the entire dataset into memory, which can be problematic for very large collections.
+
+The Generator Pattern [#the-generator-pattern]
+
+For large datasets, use an async generator that yields one page at a time. The calling code can process and discard each page before fetching the next, keeping memory usage constant regardless of total dataset size. This approach is ideal for data exports, migrations, and ETL pipelines.
+
+
+# Rate Limiting (/docs/guides/rate-limiting)
+
+
+
+Rate limiting protects the Voltus platform from abuse and ensures fair access for all users. Understanding how limits work and designing your application to stay within bounds is essential for a reliable integration.
+
+Introduction [#introduction]
+
+Every API key is subject to limits on requests per minute and per day. These limits vary by plan tier and are enforced server-side. The SDK provides tools for monitoring your usage and handling limit errors gracefully.
+
+How Limits Work [#how-limits-work]
+
+Each API response includes headers showing your current limit, remaining requests, and when the limit resets. The SDK exposes these as a `rateLimit` property on every response. If you exceed your limit, the API returns a 429 status code with a `Retry-After` header.
+
+Plan Tiers [#plan-tiers]
+
+The free tier allows 60 requests per minute and 10,000 per day. The Pro tier allows 300 per minute and 100,000 per day. Enterprise accounts can negotiate custom limits. Start with the free tier and monitor your usage — the dashboard provides analytics showing your request patterns over time.
+
+Automatic Handling [#automatic-handling]
+
+The SDK handles rate limiting automatically by default, so most applications don't need any custom logic.
+
+Built-In Retry [#built-in-retry]
+
+When a request is rate-limited, the SDK pauses and retries after the server-specified delay. This happens transparently — from your application's perspective, the call simply takes longer. The retry behavior respects your configured maximum retry count and backoff strategy.
+
+Custom Handling [#custom-handling]
+
+For time-sensitive operations where waiting isn't acceptable, you can catch `RateLimitError` explicitly. The error includes `retryAfter` (seconds to wait), `remaining` (requests left), and `limit` (total allowed). You might return cached data, queue the request for later, or notify the user.
+
+Optimization [#optimization]
+
+The best way to deal with rate limits is to use fewer requests in the first place.
+
+Batch Operations [#batch-operations]
+
+Instead of making one API call per record, use batch filters to fetch multiple records in a single request. This reduces your request count dramatically — fetching 50 records by ID takes one request instead of fifty.
+
+Webhook-Based Architecture [#webhook-based-architecture]
+
+Replace polling patterns with webhook subscriptions. Instead of checking the API every few seconds for changes, let the platform push events to your application in real time. This eliminates an entire category of API calls and gives you faster notifications to boot.
+
+Monitoring [#monitoring]
+
+Keep an eye on your usage to avoid unexpected rate limit encounters.
+
+Dashboard Analytics [#dashboard-analytics]
+
+The Voltus dashboard shows your request volume, rate limit utilization, and historical patterns. Check this periodically to understand your usage trends and anticipate when you might need to upgrade your plan or optimize your request patterns.
+
+Programmatic Monitoring [#programmatic-monitoring]
+
+Use the `rateLimit` property on SDK responses to track your remaining quota in real time. If remaining requests drop below a threshold, you can proactively throttle your application rather than waiting to hit the limit. This is especially useful for batch jobs that make many requests in a short period.
+
+
+# Voltus SDK Documentation (/docs)
+
+
+
+Welcome to the **Voltus SDK** — a modern, developer-friendly toolkit designed to help you integrate with the Voltus platform effortlessly. Whether you're building internal tools, customer-facing dashboards, or automating workflows, this SDK gives you everything you need to move fast without sacrificing reliability.
+
+Introduction [#introduction]
+
+We built this SDK because we believe developer experience matters. Every method is fully typed, every error is structured, and every edge case has been thought through. You shouldn't have to dig through raw HTTP responses or guess at payload shapes — the SDK handles all of that for you, so you can focus on building what actually matters to your users.
+
+What is Voltus? [#what-is-voltus]
+
+Voltus is a platform for managing resources, content entries, and integrations through a unified API. Whether you're building a headless CMS, a data pipeline, or an internal admin dashboard, the Voltus API provides the building blocks you need. The SDK wraps this API in a clean, type-safe interface that feels native to JavaScript and TypeScript.
+
+Who is this for? [#who-is-this-for]
+
+This documentation is written for developers who want to integrate the Voltus API into their applications. You should be comfortable with JavaScript or TypeScript and familiar with concepts like async/await, environment variables, and REST APIs. No prior experience with Voltus is required — we'll walk you through everything from installation to production deployment.
+
+Getting Started [#getting-started]
+
+The fastest way to get up and running is to install the SDK, create a client with your API key, and make your first API call. The entire process takes less than five minutes, and by the end you'll have live data flowing from the Voltus platform into your application.
+
+Quick Install [#quick-install]
+
+Open your terminal and run `npm install @voltus/sdk` to add the package to your project. The SDK has zero runtime dependencies, so it won't bloat your bundle or introduce supply chain concerns. Once installed, import the `VoltusClient` class and you're ready to go.
+
+Your First API Call [#your-first-api-call]
+
+Create a new client instance with your API key, then call `client.resources.list()` to fetch your first page of data. The response includes a `data` array with your resources and a `pagination` object with metadata about the total count and available pages. That's it — you've just made your first successful API call.
+
+Explore the Docs [#explore-the-docs]
+
+This documentation is organized into four main sections, each designed to take you deeper into the SDK's capabilities. Start from the beginning if you're new, or jump directly to the section that matches your current needs.
+
+Sections Overview [#sections-overview]
+
+**Getting Started** covers installation, your first API call, and project structure best practices. **Core Concepts** dives into authentication, configuration, and error handling patterns. **API Reference** provides detailed method signatures, parameters, and return types for every part of the SDK. And **Guides** offers practical patterns for pagination, caching, and rate limit management.
+
+Need Help? [#need-help]
+
+If you run into issues, check the FAQ page for answers to common questions. For bugs or feature requests, open an issue on our GitHub repository. Our team actively monitors issues and typically responds within 24 hours. You can also reach out through the community Discord for real-time help from other developers.
