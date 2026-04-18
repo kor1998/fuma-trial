@@ -1,0 +1,55 @@
+---
+title: Configuration
+description: Customize the Voltus SDK behavior with comprehensive configuration options.
+icon: Settings
+---
+
+The Voltus SDK is designed to work out of the box with sensible defaults, but nearly every aspect of its behavior can be customized. From timeouts and retry policies to custom logging and request middleware, the configuration system gives you full control without adding complexity when you don't need it.
+
+## Introduction
+
+Most applications will only ever set two or three configuration options — the API key and maybe the environment. But the full range of options is there for when you need precise control over the SDK's behavior in production.
+
+### Design Philosophy
+
+We follow the principle of "sensible defaults, full overrides." Every configuration option has a default that works well for the majority of use cases. You only need to specify options when you want behavior that differs from the default. This keeps simple integrations simple while giving power users the flexibility they need.
+
+### When to Customize
+
+If the SDK works well for you with just an API key, don't change anything else. Start customizing when you encounter specific needs — like setting longer timeouts for slow networks, reducing retries for time-sensitive operations, or adding middleware for observability.
+
+## Client Options
+
+The `VoltusClient` constructor accepts a configuration object that controls every aspect of the SDK's behavior. Here's what you can configure and why you might want to.
+
+### Connection Settings
+
+The `timeout` option controls how long the SDK waits for a response before giving up. The default is 30 seconds, which works for most operations. If you're exporting large datasets, you might increase this. If you need fast failure for user-facing requests, you might decrease it. The `connectTimeout` option separately controls how long the SDK waits to establish a connection.
+
+### Retry Policy
+
+By default, failed requests are retried up to three times with exponential backoff — one second, then two seconds, then four seconds. You can adjust the `retries` count, the `retryDelay` base interval, and the `retryBackoff` strategy. Setting `retries` to zero disables automatic retries entirely, which can be useful for idempotency-sensitive operations.
+
+## Middleware
+
+The SDK's middleware system lets you hook into the request lifecycle for logging, monitoring, and custom header injection.
+
+### Request Interceptors
+
+Register middleware using `client.use()` with an object containing `onRequest`, `onResponse`, and `onError` handlers. The `onRequest` handler receives the full request configuration and can modify headers, log the outgoing request, or inject tracing identifiers before the request is sent.
+
+### Response Interceptors
+
+The `onResponse` handler receives the parsed response including status code, headers, and duration. This is the ideal place to log response times, record metrics, or trigger alerts when latency exceeds a threshold. Middleware runs in the order it's registered, so you can layer multiple concerns without them interfering with each other.
+
+## Environment Configuration
+
+Production applications need different settings for different deployment stages. The SDK makes it easy to derive configuration from environment variables.
+
+### Development vs Production
+
+Your development environment might use the sandbox API with verbose debug logging, while production uses the live API with minimal logging and tighter timeouts. The SDK's `environment` option switches between API endpoints, and you can combine this with a `logLevel` setting to control verbosity.
+
+### Configuration Factory
+
+We recommend creating a factory function that reads environment variables and returns a validated configuration object. This function becomes the single place where all environment-specific logic lives, and it can validate that required variables are present before your application starts accepting traffic.

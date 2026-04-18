@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+html, body {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Yellow accent in dark mode */
+.dark {
+  --color-fd-primary: #fff383;
+  --color-fd-primary-foreground: hsl(0, 0%, 5%);
+}
+
+/* Navbar — target with #nd-nav */
+/* #nd-nav {
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  color: #ffffff;
+} */
+
+/* TocThumb — make the indicator line 2px wide */
+#nd-toc .relative > .absolute {
+  width: 2px;
+}
+
+/* Small hook connector at h3 sub-items */
+#nd-toc a.ps-6 {
+  position: relative;
+}
+
+#nd-toc a.ps-6::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 12px;
+  border-inline-start: 1px solid color-mix(in srgb, var(--color-fd-foreground) 20%, transparent);
+  border-block-end: 1px solid color-mix(in srgb, var(--color-fd-foreground) 20%, transparent);
+  border-end-start-radius: 4px;
+  background: transparent;
+}
+
+#nd-toc a.ps-6[data-active="true"]::before {
+  border-inline-start: 2px solid #fff383;
+  border-block-end: 2px solid #fff383;
+}
+
+

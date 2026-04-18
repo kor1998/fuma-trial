@@ -1,0 +1,55 @@
+---
+title: Error Handling
+description: Gracefully handle errors and edge cases in your Voltus SDK integration.
+icon: AlertCircle
+---
+
+Every API call has the potential to fail. The Voltus SDK is designed to make error handling as predictable and informative as possible, with structured error types that tell you exactly what went wrong and whether it's safe to retry.
+
+## Introduction
+
+Instead of throwing generic JavaScript errors with vague messages, the SDK provides a hierarchy of typed error classes. Each class corresponds to a specific category of failure and carries rich metadata for debugging.
+
+### Error Philosophy
+
+We believe errors should be actionable. Every error thrown by the SDK includes a machine-readable code for programmatic handling, a human-readable message for logging, a request ID for support inquiries, and a `retryable` flag that tells you whether retrying is worthwhile.
+
+### When Errors Occur
+
+Errors can happen for many reasons — invalid credentials, missing resources, malformed input, rate limiting, network issues, or server-side problems. The SDK categorizes each scenario into a specific error type so you can handle them precisely rather than catching everything with a generic handler.
+
+## Error Types
+
+The SDK defines a hierarchy of error classes, all extending from a base `VoltusError` class. This lets you catch all SDK errors broadly or target specific failure types.
+
+### Client Errors
+
+`AuthenticationError` fires when your API key is invalid or expired. `AuthorizationError` fires when your key lacks the required scope for the operation. `NotFoundError` fires when you reference a resource that doesn't exist. `ValidationError` fires when your input data fails server-side validation and includes a `fields` array describing each invalid field.
+
+### Server Errors
+
+`RateLimitError` fires when you've exceeded your API quota and includes a `retryAfter` property indicating how long to wait. `ServerError` fires for unexpected server-side failures and is always safe to retry. The SDK's built-in retry mechanism handles both of these automatically, but you can also catch them explicitly for custom handling.
+
+## Recovery Patterns
+
+The most robust applications don't just catch errors — they recover from them gracefully using established patterns.
+
+### Fallback Strategy
+
+For non-critical operations, implement a fallback that returns cached data or a default value when an API call fails. This keeps your application functional even during temporary outages. The pattern is simple — wrap your API call in a try-catch and return the fallback value in the catch block.
+
+### Dead Letter Queue
+
+For operations that must eventually succeed, log failed requests with full context and move on to the next item. A separate process can retry failed operations with longer delays, or flag them for manual review. This ensures one bad record doesn't block the processing of everything behind it.
+
+## Global Error Handling
+
+For cross-cutting concerns like monitoring and alerting, the SDK supports a global error handler that fires on every failure.
+
+### Setting Up Monitoring
+
+Call `client.onError()` with a callback function that receives the full error object. This is the ideal place to send errors to services like Sentry or Datadog — the handler receives all metadata including the request ID, error code, and endpoint, so you can automatically enrich your error reports.
+
+### Building Dashboards
+
+With structured error types flowing into your monitoring system, you can build dashboards that break down failures by type. This shows you at a glance whether you're experiencing authentication issues, hitting rate limits, or dealing with server-side problems — giving you the observability needed to maintain a healthy production integration.

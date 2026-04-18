@@ -1,0 +1,55 @@
+---
+title: Installation
+description: Install the Voltus SDK in your project using your preferred package manager.
+icon: Download
+---
+
+Getting the Voltus SDK into your project takes less than a minute. The package is published to npm and works with all major JavaScript package managers. Before you begin, make sure you have Node.js version 18 or higher installed on your machine.
+
+## Prerequisites
+
+Before installing the SDK, you'll need a few things in place. These are standard requirements for any modern JavaScript project, and chances are you already have most of them ready to go.
+
+### System Requirements
+
+You need Node.js version 18.0 or higher installed on your machine. The SDK relies on built-in features like the native Fetch API that were introduced in Node 18. If you're unsure which version you have, run `node --version` in your terminal to check. We also support Bun and Deno as alternative runtimes if you prefer those over Node.
+
+### Getting an API Key
+
+Sign in to the Voltus dashboard and navigate to Settings, then API Keys. Click the create button to generate a new key. You'll receive a string starting with `vlt_sk_` for production use or `vlt_test_` for sandbox environments. Copy this key and keep it somewhere safe — you'll need it in the next step.
+
+## Automatic Installation
+
+The simplest way to get started is through your package manager. The SDK is published as `@voltus/sdk` on the npm registry and works with npm, yarn, pnpm, and bun out of the box.
+
+### Using npm or yarn
+
+Run `npm install @voltus/sdk` or `yarn add @voltus/sdk` in your project directory. The package will be added to your `dependencies` in `package.json` and downloaded to `node_modules`. The SDK has zero external runtime dependencies, so you won't see any additional packages being pulled in.
+
+### Using pnpm or bun
+
+If you prefer pnpm or bun, the commands are `pnpm add @voltus/sdk` and `bun add @voltus/sdk` respectively. Both package managers handle the installation identically — the SDK doesn't require any special configuration or peer dependencies regardless of which package manager you use.
+
+## Environment Setup
+
+We strongly recommend storing your API key in environment variables rather than hardcoding it in your source code. This keeps your credentials safe and makes it easy to use different keys for different environments.
+
+### Creating a .env File
+
+Create a file called `.env` in the root of your project and add your API key as `VOLTUS_API_KEY=vlt_sk_your_secret_key_here`. Most frameworks like Next.js, Remix, and Express automatically load `.env` files at startup, so your key will be available as `process.env.VOLTUS_API_KEY` throughout your application.
+
+### Security Best Practices
+
+Never commit your `.env` file to version control. Add it to your `.gitignore` immediately after creating it. For team environments, create a `.env.example` file that lists all the required variables without their actual values — this serves as documentation for other developers who clone the project and need to set up their own credentials.
+
+## Verify Installation
+
+After installing the package and setting up your environment, run a quick test to make sure everything is working correctly before moving on.
+
+### Quick Test
+
+Create a simple test file that imports the `VoltusClient` class and instantiates it with your API key. If the import resolves and the client initializes without errors, your installation is complete. You can also log `client.version` to confirm the exact SDK version that was installed.
+
+### Troubleshooting
+
+If the import fails, make sure the package name is spelled correctly — it's `@voltus/sdk` with the `@voltus` scope prefix. If you get a runtime error about missing APIs, check that your Node.js version is 18 or higher. And if the client throws an authentication error, double-check that your API key is correct and hasn't been revoked in the dashboard.

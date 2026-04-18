@@ -1,0 +1,55 @@
+---
+title: Project Structure
+description: Recommended project structure for organizing your Voltus SDK integration.
+icon: Folder
+---
+
+As your integration grows beyond a single file, having a clear and consistent project structure becomes essential. The patterns described here represent what we've seen work well across hundreds of production integrations.
+
+## Introduction
+
+There's no single "correct" way to organize your code when using the Voltus SDK. The patterns here are recommendations based on real-world experience, not requirements. That said, following a consistent structure will make your codebase easier to navigate, test, and maintain — especially as your team grows and more people touch the integration code.
+
+### When Structure Matters
+
+For a quick prototype or script, you can put everything in a single file and it'll work perfectly fine. But once your integration touches multiple resources, handles webhooks, manages caching, or runs in production with monitoring, having separate modules for each concern prevents your code from becoming tangled and hard to reason about.
+
+### The Recommended Layout
+
+We suggest creating a dedicated directory for your Voltus integration — something like `src/voltus/` or `lib/voltus/`. Inside this directory, you'll have separate files for the client instance, each resource type's service layer, webhook handlers, and custom type definitions. This keeps all integration-related code in one place while maintaining clean separation between concerns.
+
+## Client Module
+
+The most important architectural decision is where your client instance lives. A centralized client module ensures every part of your application uses the same configuration and connection pool.
+
+### Single Source of Truth
+
+Create a file called `client.ts` that initializes the `VoltusClient` with your configuration and exports it. Every other module that needs to interact with the Voltus API imports the client from this one file. This means changes to your configuration — like updating the timeout or adding middleware — only need to happen in one place.
+
+### Avoiding Common Mistakes
+
+The most common mistake we see is creating new client instances inline wherever they're needed. While this technically works, you end up with duplicated configuration scattered across your codebase, multiple connection pools competing for resources, and no central place to add cross-cutting concerns like logging or error handling. A single shared client instance solves all of these problems.
+
+## Service Layer
+
+Wrapping your SDK calls in service functions creates a clean separation between your API integration and the rest of your application logic.
+
+### Why Use Services
+
+Instead of calling `client.resources.list()` directly in your route handlers or React components, create functions like `getAllResources()` or `findResourceByName()` that encapsulate the business logic. Your route handler calls the service function, which handles pagination, caching, error recovery, and data transformation internally. The handler just gets back the data it needs.
+
+### Organizing Services
+
+Create one service file per resource type — `resources.ts`, `entries.ts`, `webhooks.ts`. Each file imports the shared client and exports functions that your application code can call. This makes it easy to find the code responsible for any given operation, and it lets you add resource-specific logic like validation or caching without cluttering other parts of the codebase.
+
+## Configuration
+
+Keep your environment-specific settings organized and validated in a single configuration module.
+
+### Environment Variables
+
+Store API keys, base URLs, and feature flags in environment variables and load them through a dedicated config file. This file should validate that all required variables are present at startup, so you get a clear error message immediately rather than a confusing failure deep in your application when a missing key causes an API call to fail.
+
+### Multi-Environment Setup
+
+For teams working across development, staging, and production environments, create separate `.env` files for each stage. Most frameworks support this natively with files like `.env.local` and `.env.production`. The SDK's `environment` option makes it easy to switch between the production and sandbox APIs based on your deployment target.

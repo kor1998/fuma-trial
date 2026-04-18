@@ -1,0 +1,43 @@
+---
+title: FAQ
+description: Frequently asked questions about the Voltus SDK.
+icon: HelpCircle
+---
+
+This page answers the questions we hear most often from developers. If your question isn't covered here, open an issue on GitHub or reach out through our community Discord.
+
+## General
+
+Common questions about the SDK's capabilities, supported platforms, and licensing.
+
+### Platform Support
+
+The SDK supports Node.js 18 and above, Bun, Deno, and modern edge runtimes like Cloudflare Workers and Vercel Edge Functions. It uses the standard Fetch API under the hood, so it works anywhere modern JavaScript runs without platform-specific adapters or polyfills.
+
+### Getting an API Key
+
+Sign in to the Voltus dashboard and navigate to Settings, then API Keys. You can create multiple keys with different scopes and labels. Public keys prefixed with `vlt_pk_` are safe for client-side use but restricted to read-only operations. Secret keys prefixed with `vlt_sk_` have full access and should only be used server-side.
+
+## Troubleshooting
+
+Solutions to the most commonly reported issues.
+
+### Connection Errors
+
+If you're seeing `ECONNREFUSED` errors, check that your network allows outbound HTTPS connections to `api.voltus.dev` on port 443. Corporate firewalls and VPNs sometimes block unfamiliar domains. Also check the Voltus status page for active incidents affecting API availability.
+
+### Timeout Issues
+
+Increase the client's timeout setting if requests are timing out. The default is 30 seconds, but large data exports may need more. If you're hitting rate limits frequently, review the Rate Limiting guide for strategies to reduce API call volume through batch queries, caching, and webhooks.
+
+## Migration
+
+Information about upgrading between versions and backward compatibility.
+
+### Breaking Changes
+
+When we release a new major version, we publish a detailed migration guide with before-and-after code examples. Previous major versions receive security patches for at least 12 months after their successor is released, giving you time to upgrade at your own pace.
+
+### Backward Compatibility
+
+Minor and patch releases are always backward compatible — you can update to them without changing any existing code. We follow semantic versioning strictly, so the version number always tells you whether an update is safe to apply without review.

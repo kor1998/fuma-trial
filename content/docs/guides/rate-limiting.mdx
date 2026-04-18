@@ -1,0 +1,55 @@
+---
+title: Rate Limiting
+description: Understand and work within the Voltus API rate limits.
+icon: Zap
+---
+
+Rate limiting protects the Voltus platform from abuse and ensures fair access for all users. Understanding how limits work and designing your application to stay within bounds is essential for a reliable integration.
+
+## Introduction
+
+Every API key is subject to limits on requests per minute and per day. These limits vary by plan tier and are enforced server-side. The SDK provides tools for monitoring your usage and handling limit errors gracefully.
+
+### How Limits Work
+
+Each API response includes headers showing your current limit, remaining requests, and when the limit resets. The SDK exposes these as a `rateLimit` property on every response. If you exceed your limit, the API returns a 429 status code with a `Retry-After` header.
+
+### Plan Tiers
+
+The free tier allows 60 requests per minute and 10,000 per day. The Pro tier allows 300 per minute and 100,000 per day. Enterprise accounts can negotiate custom limits. Start with the free tier and monitor your usage — the dashboard provides analytics showing your request patterns over time.
+
+## Automatic Handling
+
+The SDK handles rate limiting automatically by default, so most applications don't need any custom logic.
+
+### Built-In Retry
+
+When a request is rate-limited, the SDK pauses and retries after the server-specified delay. This happens transparently — from your application's perspective, the call simply takes longer. The retry behavior respects your configured maximum retry count and backoff strategy.
+
+### Custom Handling
+
+For time-sensitive operations where waiting isn't acceptable, you can catch `RateLimitError` explicitly. The error includes `retryAfter` (seconds to wait), `remaining` (requests left), and `limit` (total allowed). You might return cached data, queue the request for later, or notify the user.
+
+## Optimization
+
+The best way to deal with rate limits is to use fewer requests in the first place.
+
+### Batch Operations
+
+Instead of making one API call per record, use batch filters to fetch multiple records in a single request. This reduces your request count dramatically — fetching 50 records by ID takes one request instead of fifty.
+
+### Webhook-Based Architecture
+
+Replace polling patterns with webhook subscriptions. Instead of checking the API every few seconds for changes, let the platform push events to your application in real time. This eliminates an entire category of API calls and gives you faster notifications to boot.
+
+## Monitoring
+
+Keep an eye on your usage to avoid unexpected rate limit encounters.
+
+### Dashboard Analytics
+
+The Voltus dashboard shows your request volume, rate limit utilization, and historical patterns. Check this periodically to understand your usage trends and anticipate when you might need to upgrade your plan or optimize your request patterns.
+
+### Programmatic Monitoring
+
+Use the `rateLimit` property on SDK responses to track your remaining quota in real time. If remaining requests drop below a threshold, you can proactively throttle your application rather than waiting to hit the limit. This is especially useful for batch jobs that make many requests in a short period.

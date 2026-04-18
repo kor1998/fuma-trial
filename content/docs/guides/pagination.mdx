@@ -1,0 +1,55 @@
+---
+title: Pagination
+description: Navigate through large datasets with offset-based and cursor-based pagination.
+icon: List
+---
+
+Any non-trivial application will eventually need to work with datasets too large to return in a single API response. The SDK provides both low-level controls for manual pagination and high-level patterns for common use cases.
+
+## Introduction
+
+The Voltus API uses pagination to break large result sets into manageable pages. Understanding the available pagination methods helps you choose the right approach for each use case.
+
+### Why Pagination Matters
+
+Without pagination, a single API call could return millions of records, consuming excessive bandwidth, memory, and processing time on both the client and server. Pagination keeps individual requests fast and predictable, regardless of how much data exists in your account.
+
+### Choosing a Method
+
+The API supports two pagination methods — offset-based and cursor-based. Offset pagination is simpler and supports random page access. Cursor pagination is more reliable for frequently changing data. Most applications use offset pagination by default and switch to cursors for specific real-time use cases.
+
+## Offset Pagination
+
+The default pagination method uses `limit` and `offset` parameters to control which slice of data you receive.
+
+### How It Works
+
+Set `limit` to the number of records per page and `offset` to the starting position. The response includes a `pagination` object with `total`, `limit`, `offset`, and `hasMore` fields. To get the next page, increment offset by the limit value and make another request.
+
+### Considerations
+
+The main thing to keep in mind is that underlying data can change between page requests. If a new record is inserted while you're iterating, you might see duplicates. For most applications this is acceptable, but if you need guaranteed consistency, cursor-based pagination is a better choice.
+
+## Cursor Pagination
+
+For real-time or frequently changing data, cursor-based pagination provides consistency guarantees that offset pagination cannot.
+
+### How It Works
+
+Make your first request without a cursor. Each response includes a `nextCursor` string that encodes your exact position in the result set. Pass this cursor to the next request to continue where you left off. When `nextCursor` is null, you've reached the end.
+
+### When to Use Cursors
+
+Cursor pagination is ideal for processing event feeds, syncing data between systems, and building infinite-scroll interfaces. The trade-off is that you can only move forward through results — random page access and jumping to a specific page number aren't supported.
+
+## Fetching All Records
+
+Sometimes you need every record in a collection regardless of how many pages it spans.
+
+### The Loop Pattern
+
+Create a loop that fetches one page at a time, appends results to an array, and increments the offset until `hasMore` is false. This is straightforward but loads the entire dataset into memory, which can be problematic for very large collections.
+
+### The Generator Pattern
+
+For large datasets, use an async generator that yields one page at a time. The calling code can process and discard each page before fetching the next, keeping memory usage constant regardless of total dataset size. This approach is ideal for data exports, migrations, and ETL pipelines.

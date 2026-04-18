@@ -1,0 +1,43 @@
+---
+title: Voltus SDK Documentation
+description: Build powerful integrations with the Voltus SDK.
+icon: Home
+---
+
+Welcome to the **Voltus SDK** — a modern, developer-friendly toolkit designed to help you integrate with the Voltus platform effortlessly. Whether you're building internal tools, customer-facing dashboards, or automating workflows, this SDK gives you everything you need to move fast without sacrificing reliability.
+
+## Introduction
+
+We built this SDK because we believe developer experience matters. Every method is fully typed, every error is structured, and every edge case has been thought through. You shouldn't have to dig through raw HTTP responses or guess at payload shapes — the SDK handles all of that for you, so you can focus on building what actually matters to your users.
+
+### What is Voltus?
+
+Voltus is a platform for managing resources, content entries, and integrations through a unified API. Whether you're building a headless CMS, a data pipeline, or an internal admin dashboard, the Voltus API provides the building blocks you need. The SDK wraps this API in a clean, type-safe interface that feels native to JavaScript and TypeScript.
+
+### Who is this for?
+
+This documentation is written for developers who want to integrate the Voltus API into their applications. You should be comfortable with JavaScript or TypeScript and familiar with concepts like async/await, environment variables, and REST APIs. No prior experience with Voltus is required — we'll walk you through everything from installation to production deployment.
+
+## Getting Started
+
+The fastest way to get up and running is to install the SDK, create a client with your API key, and make your first API call. The entire process takes less than five minutes, and by the end you'll have live data flowing from the Voltus platform into your application.
+
+### Quick Install
+
+Open your terminal and run `npm install @voltus/sdk` to add the package to your project. The SDK has zero runtime dependencies, so it won't bloat your bundle or introduce supply chain concerns. Once installed, import the `VoltusClient` class and you're ready to go.
+
+### Your First API Call
+
+Create a new client instance with your API key, then call `client.resources.list()` to fetch your first page of data. The response includes a `data` array with your resources and a `pagination` object with metadata about the total count and available pages. That's it — you've just made your first successful API call.
+
+## Explore the Docs
+
+This documentation is organized into four main sections, each designed to take you deeper into the SDK's capabilities. Start from the beginning if you're new, or jump directly to the section that matches your current needs.
+
+### Sections Overview
+
+**Getting Started** covers installation, your first API call, and project structure best practices. **Core Concepts** dives into authentication, configuration, and error handling patterns. **API Reference** provides detailed method signatures, parameters, and return types for every part of the SDK. And **Guides** offers practical patterns for pagination, caching, and rate limit management.
+
+### Need Help?
+
+If you run into issues, check the FAQ page for answers to common questions. For bugs or feature requests, open an issue on our GitHub repository. Our team actively monitors issues and typically responds within 24 hours. You can also reach out through the community Discord for real-time help from other developers.

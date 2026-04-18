@@ -1,0 +1,39 @@
+---
+title: Changelog
+description: What's new and improved in every release of the Voltus SDK.
+icon: History
+---
+
+We ship updates to the SDK regularly, with a focus on developer experience, performance, and reliability. Below is a summary of the most recent releases.
+
+## Latest Release
+
+The most recent version includes significant new features and performance improvements that benefit all users.
+
+### Version 1.4 — April 2026
+
+This release introduces the Analytics API for programmatic access to usage metrics, cursor-based pagination on the entries endpoint for real-time feeds, and the new middleware system via `client.use()` for custom logging and monitoring. Bundle size was reduced by 18 percent through improved tree-shaking, and TypeScript type inference for filter queries is now significantly more accurate.
+
+### Version 1.3 — March 2026
+
+OAuth 2.0 support landed with full authorization code flow, automatic token refresh, and token revocation. The `webhooks.test()` method was added for debugging webhook endpoints during development. Two bugs were fixed — retry logic now respects the `Retry-After` header correctly, and a race condition in concurrent paginated requests was resolved.
+
+## Previous Releases
+
+Earlier versions established the core SDK functionality and infrastructure.
+
+### Version 1.2 — February 2026
+
+This release brought webhook signature verification, structured validation errors via `ValidationError.fields`, and the new metadata field on resources. The `node-fetch` dependency was removed in favor of native Fetch, making the SDK truly zero-dependency for the first time.
+
+### Version 1.1 — January 2026
+
+Batch operations, custom logger support, and proxy configuration were added. Fixed timeout not being applied to retry requests and URL encoding issues for resource names with special characters.
+
+## Initial Release
+
+The foundation that started it all.
+
+### Version 1.0 — December 2025
+
+The first stable release of the Voltus SDK. Included full CRUD operations for Resources and Entries, API key authentication, automatic retries with exponential backoff, rate limit handling, and comprehensive TypeScript type definitions. This release established the patterns and conventions that all subsequent versions build upon.

@@ -1,0 +1,55 @@
+---
+title: REST Endpoints
+description: Complete list of REST API endpoints available through the Voltus SDK.
+icon: Link
+---
+
+While the SDK abstracts HTTP communication, understanding the underlying REST API can be helpful for debugging, custom integrations, or working in environments where the SDK isn't available.
+
+## Introduction
+
+Every SDK method maps directly to a REST endpoint. The request and response formats are consistent across the entire API surface, making it easy to predict how any endpoint behaves once you understand the patterns.
+
+### Base URL
+
+All API endpoints are served from `https://api.voltus.dev/v1` for production and `https://sandbox.api.voltus.dev/v1` for sandbox. The version prefix ensures backward compatibility — breaking changes ship under new version prefixes.
+
+### Request Format
+
+Every request must include an `Authorization` header with your API key as a Bearer token, plus `Content-Type` and `Accept` headers set to `application/json`. The API strictly validates these headers and rejects requests with missing or incorrect values.
+
+## Resource Endpoints
+
+Resource endpoints follow standard REST conventions with consistent URL patterns and HTTP methods.
+
+### Read Operations
+
+`GET /resources` returns a paginated list of all resources. `GET /resources/:id` returns a single resource by ID or a 404 error if it doesn't exist. Both endpoints support query parameters for filtering by status, tags, and date ranges. The SDK maps these to `client.resources.list()` and `client.resources.get()`.
+
+### Write Operations
+
+`POST /resources` creates a new resource and returns it with server-generated fields. `PATCH /resources/:id` updates specific fields on an existing resource using merge-patch semantics. `DELETE /resources/:id` permanently removes a resource and returns a 204 status with no body. The SDK maps these to `create()`, `update()`, and `delete()` methods.
+
+## Response Format
+
+All API responses follow consistent structures that make parsing predictable across every endpoint.
+
+### Success Responses
+
+Single-resource responses wrap the data in a `data` field containing the full resource object. List responses include the `data` array plus a `pagination` object with `total`, `limit`, `offset`, and `hasMore` fields. Create and update operations return the full resource in the `data` field including server-generated values.
+
+### Error Responses
+
+Error responses include an `error` object with a machine-readable `code`, a human-readable `message`, and a unique `requestId` for support inquiries. Validation errors include an additional `fields` array listing each invalid field with its specific error message.
+
+## Status Codes
+
+The API uses standard HTTP status codes consistently across all endpoints.
+
+### Success Codes
+
+`200 OK` for successful reads and updates. `201 Created` for successful resource creation. `204 No Content` for successful deletions. These are the only three success codes the API returns.
+
+### Error Codes
+
+`400 Bad Request` for malformed requests. `401 Unauthorized` for invalid credentials. `403 Forbidden` for insufficient permissions. `404 Not Found` for missing resources. `422 Unprocessable Entity` for validation failures. `429 Too Many Requests` for rate limiting. `500 Internal Server Error` for server-side issues.

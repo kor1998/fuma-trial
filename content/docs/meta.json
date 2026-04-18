@@ -1,0 +1,24 @@
+{
+  "pages": [
+    "index",
+    "---Getting Started---",
+    "getting-started/installation",
+    "getting-started/quickstart",
+    "getting-started/project-structure",
+    "---Core Concepts---",
+    "core-concepts/authentication",
+    "core-concepts/configuration",
+    "core-concepts/error-handling",
+    "---API Reference---",
+    "api-reference/client",
+    "api-reference/endpoints",
+    "api-reference/webhooks",
+    "---Guides---",
+    "guides/data-fetching",
+    "guides/pagination",
+    "guides/rate-limiting",
+    "---Resources---",
+    "changelog",
+    "faq"
+  ]
+}

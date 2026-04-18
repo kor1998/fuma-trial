@@ -1,0 +1,55 @@
+---
+title: Webhooks
+description: Receive real-time notifications when events occur in your Voltus account.
+icon: Send
+---
+
+Webhooks let your application react to events in real time instead of constantly polling the API for changes. When something happens on the platform, Voltus sends an HTTP POST request to your specified URL with the full event details.
+
+## Introduction
+
+The push-based webhook model is more efficient, more timely, and more scalable than polling. Instead of checking the API every few seconds for changes, your application simply waits for notifications to arrive.
+
+### How Webhooks Work
+
+You register a URL and a list of event types you're interested in. When a matching event occurs — like a resource being created or an entry being published — the platform sends a POST request to your URL with a JSON payload containing the event type, timestamp, and full resource data.
+
+### When to Use Webhooks
+
+Use webhooks whenever you need real-time awareness of changes. Common use cases include syncing data to external systems, triggering email notifications, updating search indexes, invalidating caches, and logging activity for audit trails. Webhooks eliminate the need for polling entirely.
+
+## Setting Up
+
+Creating and configuring webhooks is straightforward through both the SDK and the dashboard.
+
+### Creating a Webhook
+
+Call `client.webhooks.create()` with your endpoint URL, the list of event types to subscribe to, and a signing secret for payload verification. The signing secret is optional but strongly recommended for production — it prevents malicious actors from sending fake events to your endpoint.
+
+### Available Events
+
+The platform emits events for all major state changes. Resource events include `resource.created`, `resource.updated`, and `resource.deleted`. Entry events include `entry.created`, `entry.updated`, `entry.published`, and `entry.unpublished`. Team events include `user.invited`. You can subscribe to as many or as few event types as you need.
+
+## Processing Events
+
+When your application receives a webhook, it needs to verify authenticity, parse the payload, and handle the event appropriately.
+
+### Signature Verification
+
+Every webhook delivery includes an `x-voltus-signature` header containing an HMAC signature of the request body. The SDK provides a `verifyWebhookSignature()` helper that validates this signature against your signing secret. Always verify before processing — skipping this step opens your application to spoofed events.
+
+### Event Routing
+
+After verification, parse the JSON payload and route it based on the `type` field. A clean approach is a switch statement or handler map that calls the appropriate function for each event type. Keep your handler fast — return a 200 status quickly and process heavy work asynchronously.
+
+## Reliability
+
+The platform includes built-in retry logic and monitoring to ensure webhook deliveries are reliable.
+
+### Retry Policy
+
+If your endpoint is unavailable or returns an error, the platform retries with increasing delays — one minute, five minutes, thirty minutes, two hours, and finally twenty-four hours. After five failed attempts, the webhook is marked as failing and you receive an email notification.
+
+### Monitoring and Testing
+
+Check delivery logs in the dashboard or use `client.webhooks.test()` to trigger a test event and verify connectivity. Common failure causes include expired SSL certificates, firewall rules blocking Voltus IPs, or unhandled exceptions in your handler code. Regular monitoring ensures you catch delivery issues before they impact your integration.

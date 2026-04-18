@@ -1,0 +1,55 @@
+---
+title: Authentication
+description: Learn how to authenticate with the Voltus API using API keys and OAuth tokens.
+icon: Lock
+---
+
+Authentication is the foundation of every interaction with the Voltus platform. Before your application can read or write any data, it needs to prove its identity. The SDK makes this seamless — you pass your credentials once during client initialization, and every subsequent request is automatically authenticated.
+
+## Introduction
+
+The Voltus API supports two authentication methods — API keys for server-side applications and OAuth 2.0 for user-facing integrations. Both methods are fully supported by the SDK, and you can switch between them without changing any of your data-fetching code.
+
+### Choosing a Method
+
+If your application runs on a server and acts with its own identity, use an API key. If your application acts on behalf of individual users who need to grant permission, use OAuth 2.0. Most integrations start with API keys because they're simpler to set up, and migrate to OAuth later if user-level authentication becomes necessary.
+
+### Security Principles
+
+Regardless of which method you use, never expose credentials in client-side code, version control, or logs. Treat your API key like a password — store it in environment variables, rotate it periodically, and revoke it immediately if it's ever compromised.
+
+## API Keys
+
+API keys are the simplest and most common way to authenticate with the Voltus API. You generate a key in the dashboard, pass it to the SDK, and you're ready to make requests.
+
+### Key Types
+
+Voltus issues three types of API keys. Secret keys start with `vlt_sk_` and grant full read-write access — use these only on the server. Public keys start with `vlt_pk_` and are restricted to read-only operations — these are safe for client-side code. Test keys start with `vlt_test_` and only work against the sandbox environment — use these during development.
+
+### Using Keys in the SDK
+
+Pass your API key to the `VoltusClient` constructor and the SDK handles everything else. It attaches the key as a Bearer token in the Authorization header of every request, validates the key format at initialization time, and throws a clear error if the key is malformed or missing.
+
+## OAuth 2.0
+
+For applications that act on behalf of users, the SDK supports the full OAuth 2.0 authorization code flow with automatic token management.
+
+### The Authorization Flow
+
+First, generate an authorization URL using `client.auth.getAuthorizationUrl()` with the scopes your application needs. Redirect the user to this URL — they'll see a consent screen showing what permissions your app is requesting. After they approve, Voltus redirects back to your callback URL with an authorization code that you exchange for access tokens.
+
+### Token Lifecycle
+
+Once authenticated, the SDK manages token expiration and refresh automatically. When an access token is about to expire, the SDK uses the refresh token to obtain a new one before your next API call. You can subscribe to token refresh events with `client.auth.onTokenRefresh()` if you need to persist new tokens to your database.
+
+## Scopes
+
+Every credential is associated with a set of scopes that define what it can access. Understanding scopes helps you follow the principle of least privilege.
+
+### Available Scopes
+
+Scopes follow a `resource:action` pattern — `resources:read` lets you list and get resources, `resources:write` lets you create, update, and delete them. Other scopes include `webhooks:manage`, `users:read`, and `analytics:read`. Always request the minimum set your application actually needs.
+
+### Handling Permission Errors
+
+If your application attempts an operation outside its granted scopes, the SDK throws an `AuthorizationError` with a message explaining which scope is missing. This makes debugging straightforward — you'll know exactly what to add to your API key or OAuth request to resolve the issue.

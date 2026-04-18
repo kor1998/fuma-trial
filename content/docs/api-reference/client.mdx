@@ -1,0 +1,55 @@
+---
+title: Client Reference
+description: Complete API reference for the VoltusClient class and its methods.
+icon: Code
+---
+
+The `VoltusClient` class is the central object in the SDK and the starting point for every operation. This reference covers its constructor, properties, and all available resource APIs.
+
+## Introduction
+
+Every interaction with the Voltus platform flows through a single client instance. Understanding how to create and configure this instance is the foundation for everything else in the SDK.
+
+### Creating a Client
+
+Import `VoltusClient` from `@voltus/sdk` and instantiate it with your configuration. The only required parameter is `apiKey`. The client validates your configuration at creation time, so any issues — like a missing key or invalid environment name — surface immediately.
+
+### Client Lifecycle
+
+The client manages an internal HTTP adapter with connection pooling and keep-alive. Create one instance and reuse it across your application. Multiple instances work but waste resources — each maintains its own connection pool, authentication state, and middleware chain.
+
+## Constructor Options
+
+The constructor accepts a single configuration object with several optional fields that control the client's behavior.
+
+### Required Options
+
+The `apiKey` field is the only required parameter. It accepts any valid Voltus API key — secret keys starting with `vlt_sk_`, public keys with `vlt_pk_`, or test keys with `vlt_test_`. The client validates the key format during initialization and throws an error if it's malformed.
+
+### Optional Settings
+
+The `environment` field accepts `production` or `sandbox` and defaults to `production`. The `timeout` field sets the request timeout in milliseconds with a default of 30,000. The `retries` field controls the maximum retry attempts with a default of 3. The `baseUrl` field lets you point to a custom API endpoint for self-hosted deployments.
+
+## Resource APIs
+
+The client exposes several resource-specific APIs as properties. Each follows the same consistent interface for CRUD operations.
+
+### Resources and Entries
+
+`client.resources` provides methods for managing resources — `list()`, `get()`, `create()`, `update()`, and `delete()`. `client.entries` follows the same pattern with an additional `publish()` method. Both return fully typed response objects with consistent pagination for list operations.
+
+### Users and Webhooks
+
+`client.users` provides `me()` for the current user profile and `listApiKeys()` for key management. `client.webhooks` provides the full CRUD suite plus a `test()` method for sending test events to your endpoint. `client.analytics` gives access to usage metrics and request logs.
+
+## Type Definitions
+
+The SDK exports all types so you can reference them in your own code for full type safety.
+
+### Resource Types
+
+The most commonly used types are `Resource`, `Entry`, `User`, and `Webhook`. Each includes an `id` string with a type-specific prefix, string fields for `name` and `description`, a `status` enum, and `Date` objects for `createdAt` and `updatedAt`. All date fields are returned as native JavaScript Date objects rather than ISO strings.
+
+### Utility Types
+
+`PaginatedResponse<T>` wraps list results with a `data` array and `pagination` metadata. `ClientOptions` defines the constructor configuration shape. All of these types are designed to be imported and used directly in your application's type signatures for end-to-end type safety.
