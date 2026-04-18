@@ -5,12 +5,12 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/server"
-  status = 200
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["build/server/**"]
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/.netlify/functions/server"
   status = 200
+  force = false
